@@ -23,13 +23,13 @@ const checkSyntax = (str) => {
   }
 
   return 1;
-}
+};
 
 function test(call, args, count, n) {
   let r = (call.apply(n, args) === count);
   console.assert(r, `Found items count: ${count}`);
   if (!r) throw "Test failed!";
-}
+};
 
 try {
   test(checkSyntax, ["---(++++)----"], 0);

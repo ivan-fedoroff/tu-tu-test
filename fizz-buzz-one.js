@@ -17,7 +17,7 @@ function test(call, args, count, n) {
     let r = (call.apply(n, args) === count);
     console.assert(r, `Found items count: ${count}`);
     if (!r) throw "Test failed!";
-}
+};
 
 try {
     test(dscount, ['ab___ab__', 'a', 'b'], 2);
