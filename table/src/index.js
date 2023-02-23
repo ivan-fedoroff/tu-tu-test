@@ -1,5 +1,6 @@
 import onChange from "on-change";
 import axios from "axios";
+import renderPagination from "./renderPagination.js";
 
 const renderTable = (data) => {
   const htmlRows = data.map(
@@ -29,18 +30,12 @@ const renderLoaderSpinner = (elements) => {
 </div>`;
   elements.btnShort.disabled = true;
   elements.btnLong.disabled = true;
-  const btnDisabledHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-  Loading...`;
-  elements.btnShort.innerHTML = btnDisabledHTML;
-  elements.btnLong.innerHTML = btnDisabledHTML;
-}
+};
 
 const renderWorkedBtn = (elements) => {
-  elements.btnShort.innerHTML = 'Short table';
   elements.btnShort.disabled = false;
-  elements.btnLong.innerHTML = 'Long table';
   elements.btnLong.disabled = false;
-}
+};
 
 const errorMessages = {
   network: {
@@ -48,106 +43,39 @@ const errorMessages = {
   },
 };
 
-const processingData = (data, state) => {
+const processingData = (state) => {
+  const { data } = state;
   const lastIndex = state.uiState.activePage * 50;
   const firstIndex = lastIndex - 50;
   state.uiState.tableData = data.slice(firstIndex, lastIndex);
 };
 
-const renderPagination = (state, watchedState) => {
-  let { activePage } = watchedState.uiState;
-  const data = state.data;
-  const activePageInit = state.uiState.activePage;
-  const { lastPage } = state.uiState;
-  const activeClass = 'class="page-item active" aria-current="page"';
-  const disabledClass = 'class="page-item disabled"';
-  const commonClass = 'class="page-item"';
-  let firstPage;
-  let secondPage;
-  let thirdPage;
-  let firstButtonAttr;
-  let secondButtonAttr;
-  let thirdButtonAttr;
-  let firstEllipsis;
-  let secondEllipsis;
-  let previousClass;
-  let nextClass;
-  switch (activePage) {
-    case 1:
-      firstPage = 1;
-      firstButtonAttr = `id="1" ${activeClass}`;
-      secondPage = 2;
-      secondButtonAttr = `id="2" ${commonClass}`;
-      thirdPage = 3;
-      thirdButtonAttr = `id="3" ${commonClass}`;
-      previousClass = disabledClass;
-      nextClass = commonClass;
-      firstEllipsis = '';
-      secondEllipsis = '<li>...</li>';
-      break;
-    
-    case lastPage:
-      firstPage = lastPage - 2;
-      firstButtonAttr = `id="${firstPage}" ${commonClass}`;
-      secondPage = lastPage - 1;
-      secondButtonAttr = `id="${secondPage}" ${commonClass}`;
-      thirdPage = lastPage;
-      thirdButtonAttr =  `id="${lastPage}" ${activeClass}`;
-      previousClass = commonClass;
-      nextClass = disabledClass;
-      firstEllipsis = '<li>...</li>';
-      secondEllipsis = '';
-      break;
-    
-    default:
-      firstPage = activePageInit - 1;
-      firstButtonAttr = `id="${firstPage}" ${commonClass}`;
-      secondPage = activePageInit;
-      secondButtonAttr = `id="${activePage}" ${activeClass}`;
-      thirdPage = activePageInit + 1;
-      thirdButtonAttr = `id="${thirdPage}" ${commonClass}`;
-      previousClass = commonClass;
-      nextClass = commonClass;
-      firstEllipsis = '<li> ... </li>';
-      secondEllipsis = '<li> ... </li>';
-  }
-  const pagination = document.createElement('nav');
-  pagination.ariaLabel = 'table navigation';
-  pagination.innerHTML = `<ul class="pagination">
-  <li id="previous" ${previousClass}>
-    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
-  </li>
-  ${firstEllipsis}
-  <li ${firstButtonAttr}><a class="page-link" href="#">${firstPage}</a></li>
-  <li ${secondButtonAttr}><a class="page-link" href="#">${secondPage}</a></li>
-  <li ${thirdButtonAttr}><a class="page-link" href="#">${thirdPage}</a></li>
-  ${secondEllipsis}
-  <li id="next" ${nextClass}>
-    <a class="page-link" href="#">Next</a>
-  </li>
-</ul>`;
-watchedState.uiState.pagination = true;
-pagination.addEventListener('click', (e) => {
+const paginationHandler = (state) => (e) => {
   const el = e.target.parentElement;
-  if (el.id) {
     switch (el.id) {
+      case 'first':
+        state.uiState.activePage = 1;
+        break;
+
       case 'next':
-        watchedState.uiState.activePage = activePage + 1;
+        state.uiState.activePage = state.uiState.activePage + 1;
         break;
       
       case 'previous':
-        watchedState.uiState.activePage = activePage - 1;
+        state.uiState.activePage = state.uiState.activePage - 1;
+        break;
+
+      case 'last':
+        state.uiState.activePage = state.uiState.lastPage;
         break;
       
       default:
-        watchedState.uiState.activePage = Number(el.id);
+        state.uiState.activePage = Number(el.id);
     }
-  }
-  processingData(data, watchedState);
-});
+    processingData(state);
+}
 
-return pagination;
-};
+
 
 const app = async () => {
   const state = {
@@ -164,6 +92,7 @@ const app = async () => {
   const elements = {
     btnShort: document.getElementById("short-table"),
     btnLong: document.getElementById("long-table"),
+    btnClear: document.getElementById("clear-data"),
     table: document.querySelector('table'),
     tBody: document.getElementById("table-body")
   };
@@ -180,7 +109,8 @@ const app = async () => {
           pagination.remove();
         }
         console.log(value);
-        const newPagination = renderPagination(state, watchedState);
+        const newPagination = renderPagination(watchedState);
+        newPagination.addEventListener('click', paginationHandler(watchedState));
         elements.table.after(newPagination);
       } else {
         pagination.remove();
@@ -216,7 +146,6 @@ const app = async () => {
       watchedState.uiState.tableData = await watchedState.data;
       watchedState.uiState.activePage = null;
       watchedState.uiState.pagination = false;
-      watchedState.uiState.processState = 'filling';
     } catch (error) {
       watchedState.uiState.processState = 'error';
     }
@@ -230,15 +159,20 @@ const app = async () => {
       const uiData = await watchedState.data.slice(0, 50);
       watchedState.uiState.tableData = await uiData;
       watchedState.uiState.lastPage = await Math.ceil(watchedState.data.length / 50);
-      watchedState.uiState.processState = 'filling';
+      
     } catch (error) {
       watchedState.uiState.processState = 'error';
     }
-    console.log(watchedState.uiState.lastPage);
     if (watchedState.uiState.lastPage) {
       watchedState.uiState.activePage = 1;
     }
   });
+
+  elements.btnClear.addEventListener("click", async () => {
+    watchedState.uiState.processState = 'filling';
+    watchedState.uiState.tableData = [];
+    watchedState.uiState.activePage = null;
+  })
 };
 
 app();
