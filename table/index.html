@@ -1,54 +1,52 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Table</title>
-    <meta charset="UTF-8" />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
-      crossorigin="anonymous"
-    />
-  </head>
 
-  <body>
-    <div class="container">
-      <div class="btn-group mb-1" role="group">
-        <button type="button" id="short-table" class="btn btn-primary">
-          Short table
-        </button>
-        <button type="button" id="long-table" class="btn btn-outline-primary">
-          Long table
-        </button>
-      </div>
-      <button type="button" id="clear-data" class="btn btn-outline-primary">
-        Clear data
+<head>
+  <title>Table</title>
+  <meta charset="UTF-8" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+</head>
+
+<body>
+  <div class="container">
+    <div class="btn-group mb-1" role="group">
+      <button type="button" id="short-table" class="btn btn-primary">
+        Short table
       </button>
-      <div class="row">
-        <div class="col">
-          <table class="table table-dark table-striped">
-            <thead>
-              <tr>
-                <th rowspan="2" class="align-middle">id</th>
-                <th rowspan="2" class="align-middle">firstName</th>
-                <th rowspan="2" class="align-middle">lastName</th>
-                <th rowspan="2" class="align-middle">email</th>
-                <th rowspan="2" class="align-middle">phone</th>
-                <th colspan="4" class="text-center">adress</th>
-                <th rowspan="2" class="align-middle">description</th>
-              </tr>
-              <tr>
-                <th>streetAddress</th>
-                <th>city</th>
-                <th>state</th>
-                <th>zip</th>
-              </tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-          </table>
-        </div>
+      <button type="button" id="long-table" class="btn btn-outline-primary">
+        Long table
+      </button>
+    </div>
+    <button type="button" id="clear-data" class="btn btn-outline-primary">
+      Clear data
+    </button>
+    <div class="row">
+      <div class="col">
+        <table class="table table-dark table-striped">
+          <thead>
+            <tr>
+              <th id="id" rowspan="2" class="align-middle sortable">Id</th>
+              <th id="firstName" rowspan="2" class="align-middle sortable">First Name</th>
+              <th id="lastName" rowspan="2" class="align-middle sortable">Last Name</th>
+              <th id="email" rowspan="2" class="align-middle sortable">Email</th>
+              <th id="phone" rowspan="2" class="align-middle sortable">Phone Number</th>
+              <th colspan="4" class="align-middle">Address</th>
+              <th rowspan="2" class="align-middle">Description</th>
+            </tr>
+            <tr>
+              <th id="streetAddress" class="sortable">Street Address</th>
+              <th id="city" class="sortable">City</th>
+              <th id="state" class="sortable">State</th>
+              <th id="zip" class="sortable">Zip</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
       </div>
     </div>
+  </div>
 
-  </body>
+</body>
+
 </html>

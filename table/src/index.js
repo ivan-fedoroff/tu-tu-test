@@ -43,39 +43,44 @@ const errorMessages = {
   },
 };
 
+// const sortHandler = (a, b) => ;
+
 const processingData = (state) => {
   const { data } = state;
-  const lastIndex = state.uiState.activePage * 50;
-  const firstIndex = lastIndex - 50;
-  state.uiState.tableData = data.slice(firstIndex, lastIndex);
+  if (data.length > 50) {
+    const lastIndex = state.uiState.activePage * 50;
+    const firstIndex = lastIndex - 50;
+    state.uiState.tableData = data.slice(firstIndex, lastIndex)
+  } else {
+    state.uiState.tableData = [];
+    state.uiState.tableData = data;
+  }
 };
 
 const paginationHandler = (state) => (e) => {
   const el = e.target.parentElement;
-    switch (el.id) {
-      case 'first':
-        state.uiState.activePage = 1;
-        break;
+  switch (el.id) {
+    case 'first':
+      state.uiState.activePage = 1;
+      break;
 
-      case 'next':
-        state.uiState.activePage = state.uiState.activePage + 1;
-        break;
-      
-      case 'previous':
-        state.uiState.activePage = state.uiState.activePage - 1;
-        break;
+    case 'next':
+      state.uiState.activePage = state.uiState.activePage + 1;
+      break;
 
-      case 'last':
-        state.uiState.activePage = state.uiState.lastPage;
-        break;
-      
-      default:
-        state.uiState.activePage = Number(el.id);
-    }
-    processingData(state);
-}
+    case 'previous':
+      state.uiState.activePage = state.uiState.activePage - 1;
+      break;
 
+    case 'last':
+      state.uiState.activePage = state.uiState.lastPage;
+      break;
 
+    default:
+      state.uiState.activePage = Number(el.id);
+  }
+  processingData(state);
+};
 
 const app = async () => {
   const state = {
@@ -86,6 +91,9 @@ const app = async () => {
       activePage: null,
       lastPage: null,
       pagination: false,
+      sortedColumnId: null,
+      clicks: 0,
+      sortingDirection: null,
     }
   };
 
@@ -94,7 +102,8 @@ const app = async () => {
     btnLong: document.getElementById("long-table"),
     btnClear: document.getElementById("clear-data"),
     table: document.querySelector('table'),
-    tBody: document.getElementById("table-body")
+    tBody: document.getElementById("table-body"),
+    sortableEls: document.getElementsByClassName("sortable"),
   };
 
   const watchedState = onChange(state, async (path, value) => {
@@ -130,12 +139,40 @@ const app = async () => {
         case 'error':
           renderWorkedBtn(elements);
           elements.tBody.innerHTML = `<p class="text-warning h4">${errorMessages.network.error}</p>`
-        break;
+          break;
 
         default:
           throw new Error(`Unknown process state: ${path}`);
       }
     }
+
+    if (path === 'uiState.clicks') {
+      if (value === 1) {
+        const id = watchedState.uiState.sortedColumnId;
+        watchedState.data.sort((a, b) => {
+          let valueA = a.adress?.[id] ?? a[id];
+          let valueB = b.adress?.[id] ?? b[id];
+          if (!isNaN(valueA)) {
+            valueA = Number(valueA);
+            valueB = Number(valueB);
+          }
+          if (valueA > valueB) {
+            return 1;
+          }
+          if (valueA < valueB) {
+            return -1;
+          }
+  
+          return 0;
+        });
+        processingData(watchedState);
+      }
+      if (value > 1) {
+        watchedState.data.reverse();
+        processingData(watchedState);
+      }
+    }
+    
   });
 
   elements.btnShort.addEventListener("click", async (e) => {
@@ -144,8 +181,6 @@ const app = async () => {
       const response = await axios.get(urlForShort);
       watchedState.data = await response.data;
       watchedState.uiState.tableData = await watchedState.data;
-      watchedState.uiState.activePage = null;
-      watchedState.uiState.pagination = false;
     } catch (error) {
       watchedState.uiState.processState = 'error';
     }
@@ -159,7 +194,7 @@ const app = async () => {
       const uiData = await watchedState.data.slice(0, 50);
       watchedState.uiState.tableData = await uiData;
       watchedState.uiState.lastPage = await Math.ceil(watchedState.data.length / 50);
-      
+
     } catch (error) {
       watchedState.uiState.processState = 'error';
     }
@@ -172,7 +207,30 @@ const app = async () => {
     watchedState.uiState.processState = 'filling';
     watchedState.uiState.tableData = [];
     watchedState.uiState.activePage = null;
+    watchedState.uiState.pagination = false;
+    watchedState.uiState.sortedColumnId = null;
+    watchedState.uiState.sorted = null;
+    watchedState.uiState.clicks = 0;
   })
+
+  for (let i = 0; i < elements.sortableEls.length; i += 1) {
+    elements.sortableEls[i].addEventListener("click", (e) => {
+      const el = e.target;
+      if (watchedState.uiState.sortedColumnId === elements.sortableEls[i].id) {
+        el.clicks += 1;
+      } else {
+        watchedState.uiState.clicks = 0;
+        el.clicks = 1;
+        watchedState.uiState.sortedColumnId = elements.sortableEls[i].id;
+      }
+      if (el.clicks % 2 === 0) {
+        watchedState.uiState.sortingDirection = "down";
+      } else {
+        watchedState.uiState.sortingDirection = "up";
+      }
+      watchedState.uiState.clicks = el.clicks;
+    })
+  };
 };
 
 app();
