@@ -1,36 +1,16 @@
 import onChange from "on-change";
 import axios from "axios";
+import arrowDown from "./icons8-down-arrow-32.png";
+import arrowUp from "./icons8-up-arrow-32.png";
 import renderPagination from "./renderPagination.js";
-
-const renderTable = (data) => {
-  const htmlRows = data.map(
-    (client) => `<tr>
-    <td>${client.id}</td>
-    <td>${client.firstName}</td>
-    <td>${client.lastName}</td>
-    <td>${client.email}</td>
-    <td>${client.phone}</td>
-    <td>${client.adress.streetAddress}</td>
-    <td>${client.adress.city}</td>
-    <td>${client.adress.state}</td>
-    <td>${client.adress.zip}</td>
-    <td>${client.description}</td>
-  </tr>`
-  );
-  return htmlRows.join("\n");
-};
+import renderTable from "./renderTable.js";
+import renderLoaderSpinner from "./renderLoaderSpinner.js";
+import processingData from "./processingData.js";
+import paginationHandler from "./paginationHandler.js";
+import renderArrow from "./renderArrow.js";
 
 const urlForShort = 'http://www.filltext.com/?rows=32&id=%7Bnumber%7C1000%7D&firstName=%7BfirstName%7D&lastName=%7BlastName%7D&email=%7Bemail%7D&phone=%7Bphone%7C(xxx)xxx-xx-xx%7D&adress=%7BaddressObject%7D&description=%7Blorem%7C32%7D';
 const urlForBig = 'http://www.filltext.com/?rows=1000&id=%7Bnumber%7C1000%7D&firstName=%7BfirstName%7D&delay=3&lastName=%7BlastName%7D&email=%7Bemail%7D&phone=%7Bphone%7C(xxx)xxx-xx-xx%7D&adress=%7BaddressObject%7D&description=%7Blorem%7C32%7D';
-
-const renderLoaderSpinner = (elements) => {
-  elements.tBody.innerHTML = `<div class="d-flex align-items-center">
-  <strong>Loading...</strong>
-  <div class="spinner-border text-light ms-auto" role="status" aria-hidden="true"></div>
-</div>`;
-  elements.btnShort.disabled = true;
-  elements.btnLong.disabled = true;
-};
 
 const renderWorkedBtn = (elements) => {
   elements.btnShort.disabled = false;
@@ -41,45 +21,6 @@ const errorMessages = {
   network: {
     error: 'Network Problems. Try again.',
   },
-};
-
-// const sortHandler = (a, b) => ;
-
-const processingData = (state) => {
-  const { data } = state;
-  if (data.length > 50) {
-    const lastIndex = state.uiState.activePage * 50;
-    const firstIndex = lastIndex - 50;
-    state.uiState.tableData = data.slice(firstIndex, lastIndex)
-  } else {
-    state.uiState.tableData = [];
-    state.uiState.tableData = data;
-  }
-};
-
-const paginationHandler = (state) => (e) => {
-  const el = e.target.parentElement;
-  switch (el.id) {
-    case 'first':
-      state.uiState.activePage = 1;
-      break;
-
-    case 'next':
-      state.uiState.activePage = state.uiState.activePage + 1;
-      break;
-
-    case 'previous':
-      state.uiState.activePage = state.uiState.activePage - 1;
-      break;
-
-    case 'last':
-      state.uiState.activePage = state.uiState.lastPage;
-      break;
-
-    default:
-      state.uiState.activePage = Number(el.id);
-  }
-  processingData(state);
 };
 
 const app = async () => {
@@ -93,7 +34,7 @@ const app = async () => {
       pagination: false,
       sortedColumnId: null,
       clicks: 0,
-      sortingDirection: null,
+      sortingState: null,
     }
   };
 
@@ -117,7 +58,6 @@ const app = async () => {
         if (state.uiState.pagination) {
           pagination.remove();
         }
-        console.log(value);
         const newPagination = renderPagination(watchedState);
         newPagination.addEventListener('click', paginationHandler(watchedState));
         elements.table.after(newPagination);
@@ -172,7 +112,44 @@ const app = async () => {
         processingData(watchedState);
       }
     }
-    
+
+    if (path === 'uiState.sortingState') {
+      if (value) {
+        const parentEl = document.getElementById(watchedState.uiState.sortedColumnId);
+        let arrow;
+        switch (value) {
+          case 'firstCreation':
+            arrow = renderArrow('ascending');
+            parentEl.appendChild(arrow);
+            break;
+  
+          case "changingColumn":
+            const elToDel = document.getElementById("arrow");
+            elToDel.remove();
+            arrow = renderArrow('ascending');
+            parentEl.appendChild(arrow);
+            break;
+          
+          case 'changingToDescending': 
+            arrow = document.getElementById("arrow");
+            arrow.src = arrowUp;
+            break;
+          
+          case 'changingToAscending': 
+            arrow = document.getElementById("arrow");
+            arrow.src = arrowDown;
+            break;
+          
+          case 'delExisting':
+            arrow = document.getElementById("arrow");
+            arrow.remove();
+            break;
+          
+          default:
+            throw new Error(`Unknown process state: ${path}`);
+        }
+      }
+    }  
   });
 
   elements.btnShort.addEventListener("click", async (e) => {
@@ -209,26 +186,39 @@ const app = async () => {
     watchedState.uiState.activePage = null;
     watchedState.uiState.pagination = false;
     watchedState.uiState.sortedColumnId = null;
-    watchedState.uiState.sorted = null;
     watchedState.uiState.clicks = 0;
+    if (watchedState.uiState.sortingState) {
+      watchedState.uiState.sortingState = 'delExisting';
+    }
   })
 
   for (let i = 0; i < elements.sortableEls.length; i += 1) {
     elements.sortableEls[i].addEventListener("click", (e) => {
       const el = e.target;
-      if (watchedState.uiState.sortedColumnId === elements.sortableEls[i].id) {
-        el.clicks += 1;
-      } else {
-        watchedState.uiState.clicks = 0;
-        el.clicks = 1;
-        watchedState.uiState.sortedColumnId = elements.sortableEls[i].id;
+      switch (watchedState.uiState.sortedColumnId) {
+        case null:
+          watchedState.uiState.sortedColumnId = elements.sortableEls[i].id;
+          watchedState.uiState.sortingState = 'firstCreation';
+          el.clicks = 1;
+          break;
+
+        case elements.sortableEls[i].id:
+          el.clicks += 1;
+          if (el.clicks % 2 === 0) {
+            watchedState.uiState.sortingState = "changingToDescending";
+          } else {
+            watchedState.uiState.sortingState = "changingToAscending";
+          }
+          break;
+
+        default:
+          watchedState.uiState.clicks = 0;
+          watchedState.uiState.sortingState = null;
+          el.clicks = 1;
+          watchedState.uiState.sortedColumnId = elements.sortableEls[i].id;
+          watchedState.uiState.sortingState = 'changingColumn';
       }
-      if (el.clicks % 2 === 0) {
-        watchedState.uiState.sortingDirection = "down";
-      } else {
-        watchedState.uiState.sortingDirection = "up";
-      }
-      watchedState.uiState.clicks = el.clicks;
+      watchedState.uiState.clicks = el.clicks;      
     })
   };
 };
