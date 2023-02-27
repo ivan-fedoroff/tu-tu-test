@@ -23,7 +23,7 @@
     </button>
     <div class="row">
       <div class="col">
-        <table class="table table-dark table-striped">
+        <table class="table table-dark table-striped table-sm">
           <thead>
             <tr>
               <th id="id" rowspan="2" class="align-middle sortable">Id</th>
@@ -39,6 +39,14 @@
               <th id="city" class="sortable">City</th>
               <th id="state" class="sortable">State</th>
               <th id="zip" class="sortable">Zip</th>
+            </tr>
+            <tr>
+              <th colspan="10">
+                <form class="input-group flex-nowrap">
+                  <input id="filterText" class="form-control" type="search">
+                  <input type="submit" id="search" class="btn btn-primary" value='Найти'>
+                </form>
+              </th>
             </tr>
           </thead>
           <tbody id="table-body"></tbody>

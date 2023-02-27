@@ -1,5 +1,6 @@
-import onChange from "on-change";
 import axios from "axios";
+import onChange from "on-change";
+import state from './state.js';
 import arrowDown from "./icons8-down-arrow-32.png";
 import arrowUp from "./icons8-up-arrow-32.png";
 import renderPagination from "./renderPagination.js";
@@ -8,14 +9,11 @@ import renderLoaderSpinner from "./renderLoaderSpinner.js";
 import processingData from "./processingData.js";
 import paginationHandler from "./paginationHandler.js";
 import renderArrow from "./renderArrow.js";
+import filter from './filter.js';
+import renderWorkedBtn from "./renderWorkedBtn.js";
 
 const urlForShort = 'http://www.filltext.com/?rows=32&id=%7Bnumber%7C1000%7D&firstName=%7BfirstName%7D&lastName=%7BlastName%7D&email=%7Bemail%7D&phone=%7Bphone%7C(xxx)xxx-xx-xx%7D&adress=%7BaddressObject%7D&description=%7Blorem%7C32%7D';
 const urlForBig = 'http://www.filltext.com/?rows=1000&id=%7Bnumber%7C1000%7D&firstName=%7BfirstName%7D&delay=3&lastName=%7BlastName%7D&email=%7Bemail%7D&phone=%7Bphone%7C(xxx)xxx-xx-xx%7D&adress=%7BaddressObject%7D&description=%7Blorem%7C32%7D';
-
-const renderWorkedBtn = (elements) => {
-  elements.btnShort.disabled = false;
-  elements.btnLong.disabled = false;
-};
 
 const errorMessages = {
   network: {
@@ -24,20 +22,6 @@ const errorMessages = {
 };
 
 const app = async () => {
-  const state = {
-    data: [],
-    uiState: {
-      processState: null,
-      tableData: [],
-      activePage: null,
-      lastPage: null,
-      pagination: false,
-      sortedColumnId: null,
-      clicks: 0,
-      sortingState: null,
-    }
-  };
-
   const elements = {
     btnShort: document.getElementById("short-table"),
     btnLong: document.getElementById("long-table"),
@@ -45,13 +29,15 @@ const app = async () => {
     table: document.querySelector('table'),
     tBody: document.getElementById("table-body"),
     sortableEls: document.getElementsByClassName("sortable"),
+    filterForm: document.querySelector('form'),
+    filterInput: document.getElementById('filterText'),
   };
 
   const watchedState = onChange(state, async (path, value) => {
     if (path === "uiState.tableData") {
       elements.tBody.innerHTML = await renderTable(value);
     }
-
+  
     if (path === 'uiState.activePage') {
       const pagination = elements.table.nextElementSibling;
       if (value) {
@@ -65,31 +51,31 @@ const app = async () => {
         pagination.remove();
       }
     }
-
+  
     if (path === 'uiState.processState') {
       switch (value) {
         case 'loading':
           renderLoaderSpinner(elements);
           break;
-
+  
         case 'filling':
           renderWorkedBtn(elements);
           break;
-
+  
         case 'error':
           renderWorkedBtn(elements);
           elements.tBody.innerHTML = `<p class="text-warning h4">${errorMessages.network.error}</p>`
           break;
-
+  
         default:
           throw new Error(`Unknown process state: ${path}`);
       }
     }
-
+  
     if (path === 'uiState.clicks') {
       if (value === 1) {
         const id = watchedState.uiState.sortedColumnId;
-        watchedState.data.sort((a, b) => {
+        watchedState.workData.sort((a, b) => {
           let valueA = a.adress?.[id] ?? a[id];
           let valueB = b.adress?.[id] ?? b[id];
           if (!isNaN(valueA)) {
@@ -108,11 +94,11 @@ const app = async () => {
         processingData(watchedState);
       }
       if (value > 1) {
-        watchedState.data.reverse();
+        watchedState.workData.reverse();
         processingData(watchedState);
       }
     }
-
+  
     if (path === 'uiState.sortingState') {
       if (value) {
         const parentEl = document.getElementById(watchedState.uiState.sortedColumnId);
@@ -149,7 +135,15 @@ const app = async () => {
             throw new Error(`Unknown process state: ${path}`);
         }
       }
-    }  
+    }
+        
+    if (path === 'uiState.filteringState') {
+      if (value) {
+        filter(watchedState);
+        watchedState.uiState.filteringState = 'false';
+      }
+    }
+  
   });
 
   elements.btnShort.addEventListener("click", async (e) => {
@@ -168,6 +162,7 @@ const app = async () => {
     try {
       const response = await axios.get(urlForBig);
       watchedState.data = await response.data;
+      watchedState.workData = new Array(...watchedState.data);
       const uiData = await watchedState.data.slice(0, 50);
       watchedState.uiState.tableData = await uiData;
       watchedState.uiState.lastPage = await Math.ceil(watchedState.data.length / 50);
@@ -190,6 +185,9 @@ const app = async () => {
     if (watchedState.uiState.sortingState) {
       watchedState.uiState.sortingState = 'delExisting';
     }
+    watchedState.workData = [];
+    watchedState.uiState.filtertext = '';
+    watchedState.uiState.filteringState = false;
   })
 
   for (let i = 0; i < elements.sortableEls.length; i += 1) {
@@ -221,6 +219,13 @@ const app = async () => {
       watchedState.uiState.clicks = el.clicks;      
     })
   };
+
+  elements.filterForm.addEventListener('submit', (e) => {
+    watchedState.uiState.filteringState = 'false';
+    e.preventDefault();
+    watchedState.uiState.filtertext = elements.filterInput.value;
+    watchedState.uiState.filteringState = 'true';
+  });
 };
 
 app();
