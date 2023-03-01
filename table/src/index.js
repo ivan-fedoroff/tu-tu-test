@@ -26,6 +26,7 @@ const app = async () => {
     btnClear: document.getElementById("clear-data"),
     table: document.querySelector('table'),
     tBody: document.getElementById("table-body"),
+    paginationContainer: document.querySelector("nav"),
     sortableEls: document.getElementsByClassName("sortable"),
     filterForm: document.querySelector('form'),
     filterInput: document.getElementById('filterText'),
@@ -37,16 +38,12 @@ const app = async () => {
     }
   
     if (path === 'uiState.activePage') {
-      const pagination = elements.table.nextElementSibling;
       if (value) {
-        if (state.uiState.pagination) {
-          pagination.remove();
-        }
-        const newPagination = renderPagination(watchedState);
-        newPagination.addEventListener('click', paginationHandler(watchedState));
-        elements.table.after(newPagination);
+        const pagination = renderPagination(watchedState);
+        pagination.addEventListener('click', paginationHandler(watchedState));
+        elements.paginationContainer.replaceChildren(pagination);
       } else {
-        pagination.remove();
+        elements.paginationContainer.innerHTML = '';
       }
     }
   

@@ -46,10 +46,9 @@ export default (state) => {
         previousClass = commonClass;
         nextClass = commonClass;
     }
-    const pagination = document.createElement('nav');
-    pagination.ariaLabel = 'table navigation';
-    pagination.innerHTML = `<ul class="pagination">
-    <li id="first" ${previousClass}>
+    const pagination = document.createElement('ul');
+    pagination.className = 'pagination';
+    pagination.innerHTML = `<li id="first" ${previousClass}>
       <a class="page-link" href="#">First Page</a>
     </li>
     <li id="previous" ${previousClass}>
@@ -63,8 +62,7 @@ export default (state) => {
     </li>
     <li id="last" ${nextClass}>
       <a class="page-link" href="#">Last Page</a>
-    </li>
-  </ul>`;
+    </li>`;
     state.uiState.pagination = true;
     return pagination;
   };
