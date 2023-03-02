@@ -12,6 +12,7 @@ const state = {
       sortingState: null,
       filtertext: '',
       filteringState: false,
+      targetRow: null,
     }
   };
 

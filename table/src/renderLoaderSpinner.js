@@ -1,7 +1,7 @@
 export default (elements) => {
-    elements.tBody.innerHTML = `<div class="d-flex align-items-center">
-    <strong>Loading...</strong>
-    <div class="spinner-border text-light ms-auto" role="status" aria-hidden="true"></div>
+    elements.stockContainer.innerHTML = `<div class="d-flex align-items-left">
+    <div class="col"><strong>Loading...</strong></div>
+    <div class="col"><div class="spinner-border text-warning" role="status"><span class="visually-hidden">Loading...</span></div></div>
   </div>`;
     elements.btnShort.disabled = true;
     elements.btnLong.disabled = true;

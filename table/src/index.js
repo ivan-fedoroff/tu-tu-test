@@ -9,6 +9,7 @@ import filter from './filter.js';
 import renderWorkedBtn from "./renderWorkedBtn.js";
 import handlerSortingClicks from "./handlerSortingClicks.js";
 import handlerSortingState from "./handlerSortingState.js";
+import renderSmallTable from "./renderSmallTable.js";
 
 const urlForShort = 'http://www.filltext.com/?rows=32&id=%7Bnumber%7C1000%7D&firstName=%7BfirstName%7D&lastName=%7BlastName%7D&email=%7Bemail%7D&phone=%7Bphone%7C(xxx)xxx-xx-xx%7D&adress=%7BaddressObject%7D&description=%7Blorem%7C32%7D';
 const urlForBig = 'http://www.filltext.com/?rows=1000&id=%7Bnumber%7C1000%7D&firstName=%7BfirstName%7D&delay=3&lastName=%7BlastName%7D&email=%7Bemail%7D&phone=%7Bphone%7C(xxx)xxx-xx-xx%7D&adress=%7BaddressObject%7D&description=%7Blorem%7C32%7D';
@@ -24,17 +25,19 @@ const app = async () => {
     btnShort: document.getElementById("short-table"),
     btnLong: document.getElementById("long-table"),
     btnClear: document.getElementById("clear-data"),
-    table: document.querySelector('table'),
+    table: document.getElementById('main-table'),
     tBody: document.getElementById("table-body"),
     paginationContainer: document.querySelector("nav"),
     sortableEls: document.getElementsByClassName("sortable"),
     filterForm: document.querySelector('form'),
     filterInput: document.getElementById('filterText'),
+    stockContainer: document.getElementById("stock"),
   };
 
   const watchedState = onChange(state, async (path, value) => {
     if (path === "uiState.tableData") {
       elements.tBody.innerHTML = await renderTable(value);
+      watchedState.uiState.processState = 'filling';
     }
   
     if (path === 'uiState.activePage') {
@@ -54,12 +57,16 @@ const app = async () => {
           break;
   
         case 'filling':
+          elements.stockContainer.innerHTML = '';
+          break;
+
+        case 'waiting':
           renderWorkedBtn(elements);
           break;
   
         case 'error':
           renderWorkedBtn(elements);
-          elements.tBody.innerHTML = `<p class="text-warning h4">${errorMessages.network.error}</p>`
+          elements.stockContainer.innerHTML = `<p class="text-warning h4">${errorMessages.network.error}</p>`
           break;
   
         default:
@@ -72,7 +79,7 @@ const app = async () => {
     }
   
     if (path === 'uiState.sortingState') {
-      const id = watchedState.uiState.sortedColumnId
+      const id = watchedState.uiState.sortedColumnId;
       handlerSortingState(value, id);
     }
         
@@ -81,7 +88,17 @@ const app = async () => {
         filter(watchedState);
         watchedState.uiState.filteringState = 'false';
       }
-    }  
+    }
+    
+    if (path === 'uiState.targetRow') {
+      if (value) {
+        console.log(elements.tBody.childElementCount);
+        const smallTable = renderSmallTable(value);
+        elements.stockContainer.replaceChildren(smallTable);
+      } else {
+        elements.stockContainer.innerHTML = '';
+      }
+    }
   });
 
   elements.btnShort.addEventListener("click", async (e) => {
@@ -115,7 +132,7 @@ const app = async () => {
   });
 
   elements.btnClear.addEventListener("click", async () => {
-    watchedState.uiState.processState = 'filling';
+    watchedState.uiState.processState = 'waiting';
     watchedState.uiState.tableData = [];
     watchedState.uiState.activePage = null;
     watchedState.uiState.pagination = false;
@@ -127,6 +144,7 @@ const app = async () => {
     watchedState.workData = [];
     watchedState.uiState.filtertext = '';
     watchedState.uiState.filteringState = false;
+    watchedState.uiState.targetRow = null;
   })
 
   for (let i = 0; i < elements.sortableEls.length; i += 1) {
@@ -165,6 +183,13 @@ const app = async () => {
     watchedState.uiState.filtertext = elements.filterInput.value;
     watchedState.uiState.filteringState = 'true';
   });
+
+  elements.tBody.addEventListener('click', (e) => {
+    watchedState.uiState.targetRow = null;
+    const el = e.target.parentElement;
+    console.log(el.outerHTML);
+    watchedState.uiState.targetRow = el.outerHTML;
+  })
 };
 
 app();
